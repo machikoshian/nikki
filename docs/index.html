@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <title>Nikki</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/grids-responsive-min.css">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://unpkg.com/vue"></script>
+  <script src="data.js"></script>
+  <script src="stage.js"></script>
+  <!-- script src="user.js"></script -->
+
+  <style>
+  tr.possession {
+    background-color: #C8E6C9;
+  }
+  .number {
+    text-align: right;
+  }
+
+  .attribute {
+    width: 2em;
+  }
+  .gorgeous {
+    font-size: 1em;
+  }
+  .simple {
+    width: 4em;
+    transform-origin: left top;
+    transform:scaleX(0.5);
+  }
+  .elegant {
+    width: 5em;
+    transform-origin: left top;
+    transform:scaleX(0.4);
+  }
+  .active {
+    width: 5em;
+    transform-origin: left top;
+    transform:scaleX(0.4);
+  }
+  .cute {
+    width: 4em;
+    transform-origin: left top;
+    transform:scaleX(0.5);
+  }
+  .sexy {
+    width: 4em;
+    transform-origin: left top;
+    transform:scaleX(0.5);
+  }
+  .pure {
+    width: 3em;
+    transform-origin: left top;
+    transform:scaleX(0.66);
+  }
+  .warm {
+    width: 4em;
+    transform-origin: left top;
+    transform:scaleX(0.5);
+  }
+  .cool {
+    width: 3em;
+    transform-origin: left top;
+    transform:scaleX(0.66);
+  }
+  .custom-restricted-width {
+      /* To limit the menu width to the content of the menu: */
+      display: inline-block;
+      /* Or set the width explicitly: */
+      /* width: 10em; */
+  }
+  </style>
+
+</head>
+<body>
+
+  <div id="nikki">
+    <nikki-menu v-on:selected='menuSelected'></nikki-menu>
+    <div v-show='menu==="search"'>
+      <nikki-stage-select :stages='stages' v-on:selected='selected'></nikki-stage-select>
+      <nikki-stage-info :stage='stage' :stages='stages'></nikki-stage-info>
+      <nikki-search-result :data='data' :user='user' :scores='scores'></nikki-search-result>
+    </div>
+
+    <div v-show='menu==="list"'>
+      <nikki-data-list :list='list' :user='user' v-on:changed='changed'></nikki-data-list>
+    </div>
+
+    <div v-if='menu==="closet"'>
+      <nikki-closet :closet='closet'></nikki-closet>
+    </div>
+
+    <div v-if='menu==="import"'>
+      <nikki-import v-on:imported='imported'></nikki-import>
+    </div>
+
+    <div v-if='menu==="export"'>
+      <nikki-export :data='exportData'></nikki-export>
+    </div>
+  </div>
+
+<script>
+
+let rareToScore = {
+  "-": 0,
+  "C": 817.5,
+  "B": 1309.8,
+  "A": 1690.65,
+  "S": 2089.35,
+  "SS": 2612.7,
+  "SSS": 3200,
+};
+
+let partsWeight = {
+  "ヘアスタイル": 0.5,
+  "ドレス": 2,
+  "コート": 0.2,
+  "トップス": 1,
+  "ボトムス": 1,
+  "靴下": 0.3,
+  "シューズ": 0.4,
+  "アクセサリー": 0.2,
+  "メイク": 0.1,
+};
+
+let categoryNames = [
+  "ヘアスタイル",
+  "ドレス",
+  "コート",
+  "トップス",
+  "ボトムス",
+  "靴下",
+  "シューズ",
+  "アクセサリー",
+  "メイク",
+];
+
+let subCategories = [
+  "ヘアスタイル",
+  "ドレス",
+  "コート",
+  "トップス",
+  "ボトムス",
+  "靴下1",
+  "靴下2",
+  "シューズ",
+  "ヘッドアクセ",
+  "カチューシャ",
+  "ヴェール",
+  "つけ耳",
+  "耳飾り",
+  "マフラー",
+  "ネックレス",
+  "右手飾り",
+  "左手飾り",
+  "手袋",
+  "右手持ち",
+  "左手持ち",
+  "両手持ち",
+  "腰飾り",
+  "フェイス",
+  "ボディ",
+  "タトゥー",
+  "羽根",
+  "しっぽ",
+  "前景",
+  "後景",
+  "吊り",
+  "床",
+  "肌",
+  "メイク",
+];
+
+function parseStage() {
+  let stages = {};
+  let categories = {};
+  for (line of stageTsv.split("\n")) {
+    items = line.split("\t");
+    let id = parseInt(items[0]);
+    if (Number.isNaN(id)) {
+      continue;
+    }
+    let category = items[1];
+    let name = items[2];
+    let attributes = items.slice(3, 13);
+    let tags = {};
+    if (items[14] !== "") {
+      tags[items[13]] = rareToScore[items[14]] * parseInt(items[15]);
+    }
+    if (items[17] !== "") {
+      tags[items[16]] = rareToScore[items[17]] * parseInt(items[18]);
+    }
+    stages[name] = {
+      attributes: attributes,
+      tags: tags,
+    }
+    if (categories[category] === undefined) {
+      categories[category] = [];
+    }
+    categories[category].push(name);
+  }
+  return { stages: stages, categories: categories };
+}
+
+function parseUser(tsv) {
+  let user = {};
+  for (line of tsv.split("\n")) {
+    items = line.split("\t");
+    let id = parseInt(items[1]);
+    if (Number.isNaN(id)) {
+      continue;
+    }
+    user[id] = (items[0] === '◯');
+  }
+  return user;
+}
+
+function parseData() {
+  let data = {};
+  let subCategories = {};
+  for (line of tsvData.split("\n")) {
+    items = line.split("\t");
+    let id = parseInt(items[0]);
+    if (Number.isNaN(id)) {
+      console.log(items[0]);
+      continue;
+    }
+    if (data[id]) {
+      console.log(data[id]);
+      console.log(items);
+    }
+    data[id] = items;
+    let subCategory = items[4];
+    if (subCategories[subCategory] === undefined) {
+      subCategories[subCategory] = [];
+    }
+    subCategories[subCategory].push(id);
+  }
+  return { data: data, subCategories: subCategories };
+}
+
+function getScores(data, stage) {
+  let scores = {};
+  for (let key of Object.keys(data)) {
+    let items = data[key];
+
+    // Tag score
+    let tagScore = (stage.tags[items[16]] || 0) + (stage.tags[items[17]] || 0);
+
+    // Attr score
+    let score = 0;
+    for (let i = 0; i < 10; ++i) {
+      score += ((tagScore + rareToScore[items[6 + i]]) * stage.attributes[i]);
+    }
+    scores[items[0]] = (score * partsWeight[items[3]]);
+  }
+  return scores;
+}
+
+function getCloset(data, user) {
+  let closet = [];
+  for (category of categoryNames) {
+    closet.push({
+      category: category,
+      possession: 0,
+      total: 0,
+      ratio: 0,
+    });
+  }
+
+  let possession = 0;
+  let total = 0;
+  for (key in data) {
+    let item = data[key];
+    let id = parseInt(item[0]);
+    let categoryId = Math.floor(id / 100000);
+    closet[categoryId].total += 1;
+    total += 1;
+    if (user[id]) {
+      closet[categoryId].possession += 1;
+      possession += 1;
+    }
+  }
+
+  for (let i = 0; i < categoryNames.length; ++i) {
+    closet[i].ratio = (closet[i].possession / closet[i].total);
+  }
+
+  closet.push({
+    category: "合計",
+    possession: possession,
+    total: total,
+    ratio: possession / total,
+  });
+  return closet;
+}
+
+function getExport(data, user) {
+  let exportData = "";
+  for (key in data) {
+    exportData += (user[key] ? "◯" : "") + "\t" + key + "\n";
+  }
+  return exportData;
+}
+
+</script>
+
+<script type="text/x-template" id="nikki-menu-template">
+<div class="pure-menu pure-menu-horizontal">
+  <ul class="pure-menu-list">
+    <li class="pure-menu-item"><a href="#" class="pure-menu-link" v-on:click="clicked('search')">コーデ検索</a></li>
+    <li class="pure-menu-item"><a href="#" class="pure-menu-link" v-on:click="clicked('list')">所有リスト</a></li>
+    <li class="pure-menu-item"><a href="#" class="pure-menu-link" v-on:click="clicked('closet')">クローゼット</a></li>
+    <li class="pure-menu-item"><a href="#" class="pure-menu-link" v-on:click="clicked('import')">インポート</a></li>
+    <li class="pure-menu-item"><a href="#" class="pure-menu-link" v-on:click="clicked('export')">エクスポート</a></li>
+  </ul>
+</div>
+</script>
+
+<script>
+Vue.component('nikki-menu', {
+  template: '#nikki-menu-template',
+  data: function () {
+    return {
+      selected: "コーデ検索",
+    };
+  },
+  methods: {
+    clicked: function(value) {
+      this.$emit('selected', value);
+    },
+  },
+
+  watch: {
+    selected: function(value, oldValue) {
+      this.$emit('selected', value);
+    },
+  }
+});
+</script>
+
+<script type="text/x-template" id="nikki-stage-select-template">
+  <form class="pure-form">
+    <fieldset>
+      <select v-model="categorySelected">
+        <option v-for="category of categories" :value="category">{{ category }}</option>
+      </select>
+      <select v-model="stageSelected">
+        <option v-for="name of stageNames" :value="name">{{ name }}</option>
+      </select>
+    </fieldset>
+  </form>  
+</script>
+
+<script>
+Vue.component('nikki-stage-select', {
+  template: '#nikki-stage-select-template',
+  props: ['stages'],
+  data: function () {
+    return {
+      categories: Object.keys(this.stages.categories),
+      categorySelected: "コロッセオ",
+      stageSelected: "",
+    };
+  },
+  computed: {
+    stageNames: function () {
+      return this.stages.categories[this.categorySelected];
+    }    
+  },
+  watch: {
+    stageSelected: function(value) {
+      this.$emit('selected', value);
+    },
+  }
+});
+</script>
+
+<script type="text/x-template" id="nikki-stage-info-template">
+  <table class="pure-table pure-table-horizontal">
+    <thead>
+      <tr>
+        <th><div class="attribute"><div class="gorgeous">華麗</div></div></th>
+        <th><div class="attribute"><div class="simple">シンプル</div></div></th>
+        <th><div class="attribute"><div class="elegant">エレガント</div></div></th>
+        <th><div class="attribute"><div class="active">アクティブ</div></div></th>
+        <th><div class="attribute"><div class="adult">大人</div></div></th>
+        <th><div class="attribute"><div class="cute">キュート</div></div></th>
+        <th><div class="attribute"><div class="sexy">セクシー</div></div></th>
+        <th><div class="attribute"><div class="pure">ピュア</div></div></th>
+        <th><div class="attribute"><div class="warm">ウォーム</div></div></th>
+        <th><div class="attribute"><div class="cool">クール</div></div></th>
+        <th>タグ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ attributes[0] }}</td>
+        <td>{{ attributes[1] }}</td>
+        <td>{{ attributes[2] }}</td>
+        <td>{{ attributes[3] }}</td>
+        <td>{{ attributes[4] }}</td>
+        <td>{{ attributes[5] }}</td>
+        <td>{{ attributes[6] }}</td>
+        <td>{{ attributes[7] }}</td>
+        <td>{{ attributes[8] }}</td>
+        <td>{{ attributes[9] }}</td>
+        <td>{{ tags[0] }} {{ tags[1] }}</td>
+      </tr>
+    </tbody>
+  </table>
+</script>
+
+<script>
+Vue.component('nikki-stage-info', {
+  template: '#nikki-stage-info-template',
+  props: [ 'stage', 'stages' ],
+  computed: {
+    attributes: function () {
+      let stageData = this.stages.stages[this.stage];
+      if (stageData === undefined) {
+        return [];
+      }
+      return stageData.attributes;
+    },
+    tags: function () {
+      let stageData = this.stages.stages[this.stage];
+      if (stageData === undefined) {
+        return [];
+      }
+      return Object.keys(stageData.tags);
+    },
+  },
+});
+</script>
+
+<script type="text/x-template" id="nikki-search-result-template">
+  <div class="pure-g">
+    <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
+      <table class="pure-table pure-table-horizontal">
+        <thead>
+          <tr>
+            <th>小分類</th>
+            <th>レア</th>
+            <th>名前</th>
+            <th>スコア</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="items in result">
+            <td>{{ items[4] }}</td>
+            <td>{{ items[5] }}</td>
+            <td>{{ items[2] }}</td>
+            <td class="number">{{ Math.floor(scores[items[0]]) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
+      <form class="pure-form">
+        <fieldset>
+          <select v-model="subcategory">
+            <option v-for="name of subcategories" :value="name">{{ name }}</option>
+          </select>
+        </fieldset>
+      </form>  
+      <table class="pure-table pure-table-horizontal">
+        <thead>
+          <tr>
+            <th>レア</th>
+            <th>名前</th>
+            <th>スコア</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="items in categoryResult" :class="{ possession: user[items[0]] }">
+            <td>{{ items[5] }}</td>
+            <td>{{ items[2] }}</td>
+            <td class="number">{{ Math.floor(scores[items[0]]) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</script>
+
+<script>
+Vue.component('nikki-search-result', {
+  template: '#nikki-search-result-template',
+  props: [ 'data', 'user', 'scores' ],
+  data: function() {
+    return {
+      subcategories: subCategories,
+      subcategory: "ヘアスタイル",
+    }
+  },
+  computed: {
+    result: function () {
+      if (this.scores == null) {
+        return [];
+      }
+      let result = [];
+      for (let key of subCategories) {
+        let subCategoryData = this.data.subCategories[key].concat();  // Copy by concat().
+        subCategoryData.sort((a, b) => {
+          return this.scores[b] - this.scores[a];
+        });
+        for (let i = 0; i < subCategoryData.length; ++i) {
+          let id = subCategoryData[i];
+          if (this.user[id]) {
+            result.push(this.data.data[id]);
+            break;
+          }
+        }
+      }
+      return result;
+    },
+    categoryResult: function () {
+      if (this.scores == null) {
+        return [];
+      }
+      let result = [];
+      let subCategoryData = this.data.subCategories[this.subcategory].concat();  // Copy by concat().
+      subCategoryData.sort((a, b) => {
+        return this.scores[b] - this.scores[a];
+      });
+      for (let i = 0; i < subCategoryData.length; ++i) {
+        let id = subCategoryData[i];
+        result.push(this.data.data[id]);
+      }
+      return result;
+    },
+  }
+});
+</script>
+
+<script type="text/x-template" id="nikki-export-template">
+  <textarea v-model="data"></textarea>
+</script>
+
+<script>
+Vue.component('nikki-export', {
+  template: '#nikki-export-template',
+  props: [ 'data' ],
+});
+</script>
+
+<script type="text/x-template" id="nikki-import-template">
+  <div>
+    <textarea v-model="data"></textarea>
+    <button v-on:click="clicked">インポート</button>
+  </div>
+</script>
+
+<script>
+Vue.component('nikki-import', {
+  template: '#nikki-import-template',
+  data: function () {
+    return {
+      data: "",
+    };
+  },
+  methods: {
+    clicked: function() {
+      this.$emit('imported', this.data);
+    },
+  },
+});
+</script>
+
+<script type="text/x-template" id="nikki-closet-template">
+  <table class="pure-table pure-table-horizontal">
+    <thead>
+      <tr><th>カテゴリー</th><th>所有数</th><th>全体数</th><th>所有率</th></tr>
+    </thead>
+    <tbody>
+      <tr v-for="item of closet">
+        <td>{{item.category}}</td>
+        <td>{{item.possession}}</td>
+        <td>{{item.total}}</td>
+        <td>{{Math.floor(item.ratio * 100)}}%</td>
+      </tr>
+    </tbody>
+  </table>
+</script>
+
+<script>
+Vue.component('nikki-closet', {
+  template: '#nikki-closet-template',
+  props: ['closet'],
+});
+
+</script>
+
+<script type="text/x-template" id="nikki-data-list-template">
+  <table class="pure-table pure-table-horizontal">
+    <thead>
+      <tr>
+        <th>所有</th>
+        <th>No</th>
+        <th>名前</th>
+        <th style="width: 6em;">分類</th>
+        <th>レア</th>
+        <th><div class="attribute"><div class="gorgeous">華麗</div></div></th>
+        <th><div class="attribute"><div class="simple">シンプル</div></div></th>
+        <th><div class="attribute"><div class="elegant">エレガント</div></div></th>
+        <th><div class="attribute"><div class="active">アクティブ</div></div></th>
+        <th><div class="attribute"><div class="adult">大人</div></div></th>
+        <th><div class="attribute"><div class="cute">キュート</div></div></th>
+        <th><div class="attribute"><div class="sexy">セクシー</div></div></th>
+        <th><div class="attribute"><div class="pure">ピュア</div></div></th>
+        <th><div class="attribute"><div class="warm">ウォーム</div></div></th>
+        <th><div class="attribute"><div class="cool">クール</div></div></th>
+        <th>タグ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="items in list">
+        <td><input type="checkbox" :checked="isChecked(items[0])"
+                   v-on:change="checked(items[0])"/></td>
+        <td>{{ items[1] }}</td>
+        <td>{{ items[2] }}</td>
+        <td>{{ items[3] }}</td>
+        <td>{{ items[5] }}</td>
+        <td>{{ items[6] }}</td>
+        <td>{{ items[7] }}</td>
+        <td>{{ items[8] }}</td>
+        <td>{{ items[9] }}</td>
+        <td>{{ items[10] }}</td>
+        <td>{{ items[11] }}</td>
+        <td>{{ items[12] }}</td>
+        <td>{{ items[13] }}</td>
+        <td>{{ items[14] }}</td>
+        <td>{{ items[15] }}</td>
+        <td>{{ items[16] }} {{ items[17] }}</td>
+      </tr>
+    </tbody>
+  </table>
+</script>
+
+<script>
+Vue.component('nikki-data-list', {
+  template: '#nikki-data-list-template',
+  props: ['list', 'user'],
+  methods: {
+    isChecked: function(id) {
+      return this.user[id];
+    },
+    checked: function(id) {
+      this.$emit('changed', id, !this.user[id]);
+    },
+  },
+});
+</script>
+
+<script>
+
+let data = parseData();
+//let user = parseUser(userTsv);
+let user = {} // (JSON.parse(localStorage.getItem("userPossession")) || {});
+let stages = parseStage();
+
+let nikkiVue = new Vue({
+  el: '#nikki',
+  data: {
+    names: Object.keys(stages.stages),
+    stage: "",
+    result: [],
+    list: data.data,
+    data: data,
+    user: user,
+    menu: "search",
+    stages: stages,
+    scores: null,
+  },
+  computed: {
+    closet: function () { return getCloset(this.list, this.user); },
+    exportData: function () { return getExport(this.list, this.user); },
+  },
+  methods: {
+    menuSelected: function(value) {
+      this.menu = value;
+    },
+    selected: function(value) {
+      this.stage = value;
+
+      let stageData = this.stages.stages[value];
+      this.scores = getScores(this.list, stageData);
+    },
+    changed: function(id, value) {
+      this.user[id] = value;
+      localStorage.setItem("userPossession", JSON.stringify(this.user));
+    },
+    imported: function(data) {
+      this.user = parseUser(data);
+      localStorage.setItem("userPossession", JSON.stringify(this.user));
+    },
+  },
+});
+
+</script>
+</body>
+</html>
