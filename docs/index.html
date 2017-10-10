@@ -661,7 +661,7 @@ Vue.component('nikki-data-list', {
 
 let data = parseData();
 //let user = parseUser(userTsv);
-let user = {} // (JSON.parse(localStorage.getItem("userPossession")) || {});
+let user = (JSON.parse(localStorage.getItem("userPossession")) || {});
 let stages = parseStage();
 
 let nikkiVue = new Vue({
