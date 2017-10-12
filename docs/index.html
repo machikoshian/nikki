@@ -330,8 +330,8 @@ function getExport(data, user) {
 <div class="pure-menu pure-menu-horizontal">
   <ul class="pure-menu-list">
     <li class="pure-menu-item"><a href="#search" class="pure-menu-link" v-on:click="clicked('search')">コーデ検索</a></li>
-    <li class="pure-menu-item"><a href="#list" class="pure-menu-link" v-on:click="clicked('list')">所有リスト</a></li>
     <li class="pure-menu-item"><a href="#closet" class="pure-menu-link" v-on:click="clicked('closet')">クローゼット</a></li>
+    <li class="pure-menu-item"><a href="#list" class="pure-menu-link" v-on:click="clicked('list')">衣装リスト</a></li>
     <li class="pure-menu-item"><a href="#import" class="pure-menu-link" v-on:click="clicked('import')">インポート</a></li>
     <li class="pure-menu-item"><a href="#export" class="pure-menu-link" v-on:click="clicked('export')">エクスポート</a></li>
   </ul>
@@ -600,7 +600,9 @@ Vue.component('nikki-search-result', {
 </script>
 
 <script type="text/x-template" id="nikki-export-template">
-  <textarea v-model="data"></textarea>
+  <form class="pure-form">
+    <textarea class="pure-input-1-2" v-model="data" style="width: 50wh; height: 60vh;"></textarea>
+  </form>
 </script>
 
 <script>
@@ -612,8 +614,12 @@ Vue.component('nikki-export', {
 
 <script type="text/x-template" id="nikki-import-template">
   <div>
-    <textarea v-model="data"></textarea>
-    <button v-on:click="clicked">インポート</button>
+    <form class="pure-form">
+      <fieldset>
+        <textarea class="pure-input-1-2" v-model="data" style="width: 50wh; height: 50vh;"></textarea>
+      </fieldset>
+      <button class="pure-button pure-button-primary" v-on:click="clicked">インポート</button>
+    </form>
   </div>
 </script>
 
