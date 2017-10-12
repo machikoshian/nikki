@@ -71,7 +71,27 @@
       /* Or set the width explicitly: */
       /* width: 10em; */
   }
-  </style>
+
+div.scroll-table-container {
+	border: 1px solid #963;
+	height: 80vh;
+	overflow: hidden;
+}
+
+thead.scroll-table-header {
+	display: table;
+	overflow: auto;
+	width: 100%
+}
+
+tbody.scroll-table-body {
+	display: block;
+	height: 80vh;
+	overflow: auto;
+	width: 100%;
+}
+
+</style>
 
 </head>
 <body>
@@ -89,7 +109,7 @@
     </div>
 
     <div v-if='menu==="closet"'>
-      <nikki-closet :closet='closet'></nikki-closet>
+      <nikki-closet :closet='closet' :list='list' :user='user' v-on:changed='changed'></nikki-closet>
     </div>
 
     <div v-if='menu==="import"'>
@@ -595,25 +615,62 @@ Vue.component('nikki-import', {
 </script>
 
 <script type="text/x-template" id="nikki-closet-template">
-  <table class="pure-table pure-table-horizontal">
-    <thead>
-      <tr><th>カテゴリー</th><th>所有数</th><th>全体数</th><th>所有率</th></tr>
-    </thead>
-    <tbody>
-      <tr v-for="item of closet">
-        <td>{{item.category}}</td>
-        <td>{{item.possession}}</td>
-        <td>{{item.total}}</td>
-        <td>{{Math.floor(item.ratio * 100)}}%</td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="pure-g">
+    <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
+      <table class="pure-table pure-table-horizontal">
+        <thead>
+          <tr><th>カテゴリー</th><th>所有数</th><th>全体数</th><th>所有率</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="item of closet">
+            <td>{{item.category}}</td>
+            <td>{{item.possession}}</td>
+            <td>{{item.total}}</td>
+            <td>{{Math.floor(item.ratio * 100)}}%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
+      <div class="scroll-table-container"
+      <table class="pure-table pure-table-horizontal">
+        <thead class="scroll-table-header">
+          <tr>
+            <th style="width:2em;">所有</th>
+            <th style="width:3em;">No</th>
+            <th>名前</th>
+            <th style="width:6em;">分類</th>
+            <th style="width:2em;">レア</th>
+          </tr>
+        </thead>
+        <tbody class="scroll-table-body">
+          <tr v-for="items in list" :class="{ possession: isChecked(items[0]) }">
+            <td style="width:2em;"><input type="checkbox" :checked="isChecked(items[0])"
+                        v-on:change="checked(items[0])"/></td>
+            <td style="width:3em;">{{ items[1] }}</td>
+            <td>{{ items[2] }}</td>
+            <td style="width:6em;">{{ items[3] }}</td>
+            <td style="width:1em;">{{ items[5] }}</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
 </script>
 
 <script>
 Vue.component('nikki-closet', {
   template: '#nikki-closet-template',
-  props: ['closet'],
+  props: ['closet', 'list', 'user'],
+  methods: {
+    isChecked: function(id) {
+      return this.user[id];
+    },
+    checked: function(id) {
+      this.$emit('changed', id, !this.user[id]);
+    },
+  },
 });
 
 </script>
