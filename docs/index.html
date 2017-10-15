@@ -15,6 +15,9 @@
   tr.possession {
     background-color: #C8E6C9;
   }
+  tr.void {
+    color: #E0E0E0;
+  }
   .number {
     text-align: right;
   }
@@ -531,7 +534,8 @@ Vue.component('nikki-stage-info', {
             </tr>
           </thead>
           <tbody class="scroll-table-body" style="height: 72vh">
-            <tr v-for="items in result" v-on:click="subcategoryClicked( items.subcategory )" >
+            <tr v-for="items in result" v-on:click="subcategoryClicked( items.subcategory )"
+                :class="{ void: !items.use }">
               <td　style="width:6em;">{{ items.subcategory }}</td>
               <td　style="width:2em;">{{ items.rarity }}</td>
               <td>{{ items.name }}</td>
@@ -583,7 +587,6 @@ Vue.component('nikki-search-result', {
     return {
       subcategories: subCategories,
       subcategory: "ヘアスタイル",
-      isDress: true,
     }
   },
   computed: {
@@ -592,53 +595,59 @@ Vue.component('nikki-search-result', {
       let onepieceScore = 0;
       let twopieceScore = 0;
       let result = this.result;
-      for (items of result) {
-        let score = this.score(items.id);
-        totalScore += score;
-        if (items.subcategory === "ドレス") {
-          onepieceScore = score;
+      for (key of Object.keys(result)) {
+        let items = result[key];
+        if (items.use === false) {
+          continue;
         }
-        else if (items.subcategory === "トップス" || items.subcategory === "ボトムス") {
-          twopieceScore += score;
-        }
+        totalScore += this.score(items.id);
       }
-      if (onepieceScore > twopieceScore) {
-        this.isDress = true;
-        return totalScore - twopieceScore;
-      } else {
-        this.isDress = false;
-        return totalScore - onepieceScore;
-      }
+      return totalScore;
     },
     result: function () {
-      if (this.scores == null) {
-        return [];
+      let result = {};
+      for (let key of subCategories) {
+        result[key] = {
+          id: 0,
+          subcategory: key,
+          rarity: '',
+          name: '',
+          use: false,
+        };
       }
-      let result = [];
+
+      if (this.scores == null) {
+        return result;
+      }
+
       for (let key of subCategories) {
         let subCategoryData = this.data.subCategories[key].concat();  // Copy by concat().
         subCategoryData.sort((a, b) => {
           return this.scores[b] - this.scores[a];
         });
-        let items = {
-          id: 0,
-          subcategory: key,
-          rarity: '',
-          name: '',
-        };
+
         for (let i = 0; i < subCategoryData.length; ++i) {
           let id = subCategoryData[i];
           if (this.user[id]) {
-            items = {
+            result[key] = {
               id: id,
               subcategory: key,
               rarity: this.data.data[id][5],
               name: this.data.data[id][2],
+              use: true,
             }
             break;
           }
         }
-        result.push(items);
+      }
+
+      let onepieceScore = this.score(result['ドレス'].id);
+      let twopieceScore = this.score(result['トップス'].id) + this.score(result['ボトムス'].id);
+      if (onepieceScore < twopieceScore) {
+        result['ドレス'].use = false;
+      } else {
+        result['トップス'].use = false;
+        result['ボトムス'].use = false;
       }
       return result;
     },
