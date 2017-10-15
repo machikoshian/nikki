@@ -107,6 +107,10 @@ tbody.scroll-table-body {
       <nikki-data-list :list='list' :user='user' v-on:changed='changed'></nikki-data-list>
     </div>
 
+    <div v-if='menu==="memo"'>
+      <nikki-memo :record='record' v-on:input='recordInput'></nikki-closet>
+    </div>
+
     <div v-if='menu==="closet"'>
       <nikki-closet :closet='closet' :list='list' :user='user' v-on:changed='changed'></nikki-closet>
     </div>
@@ -191,6 +195,27 @@ let subCategories = [
   "肌",
   "メイク",
 ];
+
+let colosseoStages = [
+  "Xmasのホームパーティー",
+  "サマーストーリー",
+  "ビーチパーティーコーデ",
+  "絶世の麗人",
+  "オフィスの女王",
+  "春のピクニック",
+  "冬の炎",
+  "夏のガーデンパーティー",
+  "スポーツタイム",
+  "麗しき美女",
+  "春の香り",
+  "宮廷舞踏会",
+  "ゴールデンホール",
+  "華麗な女王",
+  "フェアリーガーデン",
+  "キュートな大人女子",
+  "名探偵ホームズ",
+];
+
 
 function parseStage() {
   let stages = {};
@@ -326,11 +351,44 @@ function getExport(data, user) {
 
 </script>
 
+<script type="text/x-template" id="editable-label-template">
+<div style="width:inherit">
+  <div style="width:100%; margin:0; padding:0; min-height:1rem" v-if="!edit" v-on:click="edit = true">{{value}}</div>
+  <input style="width:100%; margin:0; padding:0; height:1rem" v-if="edit" type="text" ref="field"
+         :value="value" v-on:blur="changed" v-focus>
+</div>
+</script>
+<script>
+Vue.component('editable-label', {
+  template: '#editable-label-template',
+  props: ['value'],
+  data: function () {
+    return {
+      edit: false,
+    }
+  },
+  directives: {
+    focus: {
+      inserted: function (el) {
+        el.focus();
+      },
+    },
+  },
+  methods: {
+    changed: function (value) {
+      this.edit = false;
+      this.$emit('input', this.$refs.field.value);
+    },
+  },
+});
+</script>
+
 <script type="text/x-template" id="nikki-menu-template">
 <div class="pure-menu pure-menu-horizontal">
   <ul class="pure-menu-list">
     <li class="pure-menu-item"><a href="#search" class="pure-menu-link" v-on:click="clicked('search')">コーデ検索</a></li>
     <li class="pure-menu-item"><a href="#closet" class="pure-menu-link" v-on:click="clicked('closet')">クローゼット</a></li>
+    <li class="pure-menu-item"><a href="#memo" class="pure-menu-link" v-on:click="clicked('memo')">メモ</a></li>
     <li class="pure-menu-item"><a href="#list" class="pure-menu-link" v-on:click="clicked('list')">衣装リスト</a></li>
     <li class="pure-menu-item"><a href="#import" class="pure-menu-link" v-on:click="clicked('import')">インポート</a></li>
     <li class="pure-menu-item"><a href="#export" class="pure-menu-link" v-on:click="clicked('export')">エクスポート</a></li>
@@ -599,6 +657,38 @@ Vue.component('nikki-search-result', {
 });
 </script>
 
+<script type="text/x-template" id="nikki-memo-template">
+  <table class="pure-table">
+    <thead>
+      <tr>
+        <th>ステージ</th>
+<!--        <th>理論値</th> -->
+        <th>実測値</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="key of Object.keys(record)">
+        <td>{{ key }}</td>
+<!--        <td>{{ record[key].expected }}</td> -->
+        <td style="width:5em"><editable-label :value="record[key].actual"
+            v-on:input="value => { input(key, value); }"></editable-label></td>
+      </tr>
+    </tbody>
+  </table>
+</script>
+
+<script>
+Vue.component('nikki-memo', {
+  template: '#nikki-memo-template',
+  props: ['record'],
+  methods: {
+    input: function (key, value) {
+      this.$emit('input', key, value);
+    },
+  },
+});
+</script>
+
 <script type="text/x-template" id="nikki-export-template">
   <form class="pure-form">
     <textarea class="pure-input-1-2" v-model="data" style="width: 50wh; height: 60vh;"></textarea>
@@ -766,6 +856,17 @@ Vue.component('nikki-data-list', {
 let data = parseData();
 let user = (JSON.parse(localStorage.getItem("userPossession")) || {});
 let stages = parseStage();
+let record = JSON.parse(localStorage.getItem("userRecord"));
+if (!record) {
+  record = {};
+  for (key of colosseoStages) {
+    record[key] = {
+      expected: 0,
+      actual: 0,
+    }
+  }
+}
+console.log(record);
 
 let nikkiVue = new Vue({
   el: '#nikki',
@@ -779,6 +880,7 @@ let nikkiVue = new Vue({
     menu: (location.hash.substr(1) || "search"),
     stages: stages,
     scores: null,
+    record: record,
   },
   computed: {
     closet: function () { return getCloset(this.list, this.user); },
@@ -802,6 +904,13 @@ let nikkiVue = new Vue({
       this.user = parseUser(data);
       localStorage.setItem("userPossession", JSON.stringify(this.user));
     },
+    recordInput: function(key, value) {
+      this.record[key].actual = value;
+      localStorage.setItem("userRecord", JSON.stringify(this.record));
+    },
+  },
+  watch: {
+    record: function () { alert("updated"); },
   },
 });
 
