@@ -531,11 +531,11 @@ Vue.component('nikki-stage-info', {
             </tr>
           </thead>
           <tbody class="scroll-table-body" style="height: 72vh">
-            <tr v-for="items in result" v-on:click="subcategoryClicked( items[4] )" >
-              <td　style="width:6em;">{{ items[4] }}</td>
-              <td　style="width:2em;">{{ items[5] }}</td>
-              <td>{{ items[2] }}</td>
-              <td style="width:3em;" class="number">{{ Math.floor(scores[items[0]]) }}</td>
+            <tr v-for="items in result" v-on:click="subcategoryClicked( items.subcategory )" >
+              <td　style="width:6em;">{{ items.subcategory }}</td>
+              <td　style="width:2em;">{{ items.rarity }}</td>
+              <td>{{ items.name }}</td>
+              <td style="width:3em;" class="number">{{ score(items.id) }}</td>
             </tr>
           </tbody>
         </table>
@@ -566,7 +566,7 @@ Vue.component('nikki-stage-info', {
                           v-on:change="checked(items[0])"/></td>
               <td　style="width:2em;">{{ items[5] }}</td>
               <td>{{ items[2] }}</td>
-              <td　style="width:3em;" class="number">{{ Math.floor(scores[items[0]]) }}</td>
+              <td　style="width:3em;" class="number">{{ score(items[0]) }}</td>
             </tr>
           </tbody>
         </table>
@@ -583,6 +583,7 @@ Vue.component('nikki-search-result', {
     return {
       subcategories: subCategories,
       subcategory: "ヘアスタイル",
+      isDress: true,
     }
   },
   computed: {
@@ -592,18 +593,20 @@ Vue.component('nikki-search-result', {
       let twopieceScore = 0;
       let result = this.result;
       for (items of result) {
-        let score = Math.floor(this.scores[items[0]]);
+        let score = this.score(items.id);
         totalScore += score;
-        if (items[4] === "ドレス") {
+        if (items.subcategory === "ドレス") {
           onepieceScore = score;
         }
-        else if (items[4] === "トップス" || items[4] === "ボトムス") {
+        else if (items.subcategory === "トップス" || items.subcategory === "ボトムス") {
           twopieceScore += score;
         }
       }
       if (onepieceScore > twopieceScore) {
+        this.isDress = true;
         return totalScore - twopieceScore;
       } else {
+        this.isDress = false;
         return totalScore - onepieceScore;
       }
     },
@@ -617,13 +620,25 @@ Vue.component('nikki-search-result', {
         subCategoryData.sort((a, b) => {
           return this.scores[b] - this.scores[a];
         });
+        let items = {
+          id: 0,
+          subcategory: key,
+          rarity: '',
+          name: '',
+        };
         for (let i = 0; i < subCategoryData.length; ++i) {
           let id = subCategoryData[i];
           if (this.user[id]) {
-            result.push(this.data.data[id]);
+            items = {
+              id: id,
+              subcategory: key,
+              rarity: this.data.data[id][5],
+              name: this.data.data[id][2],
+            }
             break;
           }
         }
+        result.push(items);
       }
       return result;
     },
@@ -652,6 +667,12 @@ Vue.component('nikki-search-result', {
     },
     checked: function(id) {
       this.$emit('changed', id, !this.user[id]);
+    },
+    score: function(id) {
+      if (id === 0) {
+        return 0;
+      }
+      return Math.floor(this.scores[id]);
     },
   },
 });
