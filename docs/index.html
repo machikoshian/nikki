@@ -173,8 +173,8 @@ let subCategories = [
   "靴下2",
   "シューズ",
   "ヘッドアクセ",
-  "カチューシャ",
   "ヴェール",
+  "カチューシャ",
   "つけ耳",
   "耳飾り",
   "マフラー",
@@ -255,6 +255,9 @@ function parseUser(tsv) {
   let user = {};
   for (line of tsv.split("\n")) {
     items = line.split("\t");
+    if (items.length < 2) {
+      continue;
+    }
     let id = parseInt(items[1]);
     if (Number.isNaN(id)) {
       continue;
@@ -927,7 +930,7 @@ let nikkiVue = new Vue({
       this.scores = getScores(this.list, stageData);
     },
     changed: function(id, value) {
-      this.user[id] = value;
+      this.$set(this.user, id, value);
       localStorage.setItem("userPossession", JSON.stringify(this.user));
     },
     imported: function(data) {
