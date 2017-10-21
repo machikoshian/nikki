@@ -11,6 +11,8 @@
   <script src="data.js"></script>
   <script src="stage.js"></script>
 
+  <script src="https://www.gstatic.com/firebasejs/4.5.1/firebase.js"></script>
+
   <style>
   tr.possession {
     background-color: #C8E6C9;
@@ -125,7 +127,24 @@ tbody.scroll-table-body {
     <div v-if='menu==="export"'>
       <nikki-export :data='exportData'></nikki-export>
     </div>
+
+    <div v-if='menu==="account"'>
+      <nikki-account :account='account' v-on:signin='signin'></nikki-account>
+    </div>
   </div>
+
+<script>
+  // Initialize Firebase
+  var config = {
+    apiKey: "AIzaSyDoP60nZNvdMXp19psO3GFhDEU4zYAcfMs",
+    authDomain: "nikki-2929.firebaseapp.com",
+    databaseURL: "https://nikki-2929.firebaseio.com",
+    projectId: "nikki-2929",
+    storageBucket: "nikki-2929.appspot.com",
+    messagingSenderId: "607156444646"
+  };
+  firebase.initializeApp(config);
+</script>
 
 <script>
 
@@ -398,6 +417,7 @@ Vue.component('editable-label', {
     <li class="pure-menu-item"><a href="#list" class="pure-menu-link" v-on:click="clicked('list')">衣装リスト</a></li>
     <li class="pure-menu-item"><a href="#import" class="pure-menu-link" v-on:click="clicked('import')">インポート</a></li>
     <li class="pure-menu-item"><a href="#export" class="pure-menu-link" v-on:click="clicked('export')">エクスポート</a></li>
+    <li class="pure-menu-item"><a href="#account" class="pure-menu-link" v-on:click="clicked('account')">アカウント</a></li>
   </ul>
 </div>
 </script>
@@ -884,6 +904,40 @@ Vue.component('nikki-data-list', {
 });
 </script>
 
+<script type="text/x-template" id="nikki-account-template">
+  <div>
+    <p>
+      {{message}}
+    </p>
+    <div v-if='account'>
+      <button class="pure-button" v-on:click="signin(false)">サインアウト</button>
+    </div>
+    <div v-else>
+      <button class="pure-button pure-button-primary" v-on:click="signin(true)">サインイン</button>
+    </div>
+  </div>
+</script>
+
+<script>
+Vue.component('nikki-account', {
+  template: '#nikki-account-template',
+  props: ['account'],
+  computed: {
+    message: function () {
+      if (this.account) {
+        return this.account.email;
+      }
+      return "未ログイン";
+    }
+  },
+  methods: {
+    signin: function(isSignin) {
+      this.$emit('signin', isSignin);
+    },
+  },
+});
+</script>
+
 <script>
 
 let data = parseData();
@@ -899,7 +953,8 @@ if (!record) {
     }
   }
 }
-console.log(record);
+
+let menu = (location.hash.substr(1) || "search");
 
 let nikkiVue = new Vue({
   el: '#nikki',
@@ -910,10 +965,11 @@ let nikkiVue = new Vue({
     list: data.data,
     data: data,
     user: user,
-    menu: (location.hash.substr(1) || "search"),
+    menu: menu,
     stages: stages,
     scores: null,
     record: record,
+    account: null,
   },
   computed: {
     closet: function () { return getCloset(this.list, this.user); },
@@ -932,19 +988,73 @@ let nikkiVue = new Vue({
     changed: function(id, value) {
       this.$set(this.user, id, value);
       localStorage.setItem("userPossession", JSON.stringify(this.user));
+      if (this.account) {
+        firebase.database().ref('users/' + this.account.uid + '/closet/' + id).set(value);
+      }
     },
     imported: function(data) {
-      this.user = parseUser(data);
-      localStorage.setItem("userPossession", JSON.stringify(this.user));
+      let userPossession = parseUser(data);
+      this.user = userPossession;
+      localStorage.setItem("userPossession", JSON.stringify(userPossession));
+      if (this.account) {
+        firebase.database().ref('users/' + this.account.uid + '/closet').set(userPossession);
+      }
     },
     recordInput: function(key, value) {
       this.record[key].actual = value;
       localStorage.setItem("userRecord", JSON.stringify(this.record));
     },
+    signin: function(isSignin) {
+      signin(isSignin);
+    }
   },
-  watch: {
-    record: function () { alert("updated"); },
-  },
+});
+
+function signin(isSignin) {
+  if (isSignin) {
+    let provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithRedirect(provider);
+  } else {
+    firebase.auth().signOut().then(function () {
+      firebase.database().ref('users/' + nikkiVue.account.uid + '/closet').off();
+      nikkiVue.account = null;
+    });
+  }
+}
+
+function mergeUserData(firebaseData) {
+  let localData = nikkiVue.user;
+  let isLocalModified = false;
+  for (key of Object.keys(firebaseData)) {
+    if (firebaseData[key] && !localData[key]) {
+      localData[key] = true;
+      isLocalModified = true;
+    }
+  }
+  if (isLocalModified) {
+    nikkiVue.user = localData;
+  }
+
+  let isFirebaseModified = false;
+  for (key of Object.keys(localData)) {
+    if (localData[key] && !firebaseData[key]) {
+      isFirebaseModified = true;
+      break;
+    }
+  }
+  if (isFirebaseModified) {
+    firebase.database().ref('users/' + nikkiVue.account.uid + '/closet').set(localData);
+  }
+}
+
+firebase.auth().onAuthStateChanged(function(user) {
+  console.log(user);
+  nikkiVue.account = user;
+
+  firebase.database().ref('users/' + user.uid + '/closet').on('value', function(snapshot) {
+    console.log(snapshot.val());
+    mergeUserData(snapshot.val());
+  });
 });
 
 </script>
