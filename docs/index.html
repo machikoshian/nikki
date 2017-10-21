@@ -925,9 +925,9 @@ Vue.component('nikki-account', {
   computed: {
     message: function () {
       if (this.account) {
-        return this.account.email;
+        return this.account.displayName + '　(' + this.account.email + ') でサインイン中' ;
       }
-      return "未ログイン";
+      return "未サインイン";
     }
   },
   methods: {
@@ -1022,6 +1022,36 @@ function signin(isSignin) {
   }
 }
 
+function initUserData(firebaseData) {
+  let localData = nikkiVue.user;
+  let isLocalModified = false;
+  for (key of Object.keys(firebaseData)) {
+    if (firebaseData[key] && !localData[key]) {
+      localData[key] = true;
+      isLocalModified = true;
+    }
+  }
+  if (isLocalModified) {
+    nikkiVue.user = localData;
+  }
+
+  let isFirebaseModified = false;
+  for (key of Object.keys(localData)) {
+    if (localData[key] && !firebaseData[key]) {
+      isFirebaseModified = true;
+      break;
+    }
+  }
+  if (isFirebaseModified) {
+    firebase.database().ref('users/' + nikkiVue.account.uid + '/closet').set(localData);
+  }
+
+  let userRef = firebase.database().ref('users/' + nikkiVue.account.uid);
+  userRef.child('closet').on('value', function(snapshot) {
+    nikkiVue.user = snapshot.val();
+  });
+}
+
 function mergeUserData(firebaseData) {
   let localData = nikkiVue.user;
   let isLocalModified = false;
@@ -1051,9 +1081,12 @@ firebase.auth().onAuthStateChanged(function(user) {
   console.log(user);
   nikkiVue.account = user;
 
-  firebase.database().ref('users/' + user.uid + '/closet').on('value', function(snapshot) {
-    console.log(snapshot.val());
-    mergeUserData(snapshot.val());
+  let userRef = firebase.database().ref('users/' + user.uid);
+  userRef.child('email').set(user.email);
+  userRef.child('name').set(user.displayName);
+
+  userRef.child('closet').once('value', function(snapshot) {
+    initUserData(snapshot.val());
   });
 });
 
