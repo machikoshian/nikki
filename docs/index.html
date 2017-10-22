@@ -943,14 +943,23 @@ Vue.component('nikki-account', {
 let data = parseData();
 let user = (JSON.parse(localStorage.getItem("userPossession")) || {});
 let stages = parseStage();
+
+function createUserRecord() {
+  return {
+    expected: 0,
+    actual: 0,
+  };
+}
+
+function isJsonEqual(v1, v2) {
+  return (JSON.stringify(v1) === JSON.stringify(v2));
+}
+
 let record = JSON.parse(localStorage.getItem("userRecord"));
 if (!record) {
   record = {};
   for (key of colosseoStages) {
-    record[key] = {
-      expected: 0,
-      actual: 0,
-    }
+    record[key] = createUserRecord();
   }
 }
 
@@ -1003,6 +1012,9 @@ let nikkiVue = new Vue({
     recordInput: function(key, value) {
       this.record[key].actual = value;
       localStorage.setItem("userRecord", JSON.stringify(this.record));
+      if (this.account) {
+        firebase.database().ref('users/' + this.account.uid + '/record/' + key + '/actual').set(value);
+      }
     },
     signin: function(isSignin) {
       signin(isSignin);
@@ -1017,12 +1029,16 @@ function signin(isSignin) {
   } else {
     firebase.auth().signOut().then(function () {
       firebase.database().ref('users/' + nikkiVue.account.uid + '/closet').off();
+      firebase.database().ref('users/' + nikkiVue.account.uid + '/record').off();
       nikkiVue.account = null;
     });
   }
 }
 
 function initUserData(firebaseData) {
+  if (firebaseData == null) {
+    firebaseData = {};
+  }
   let localData = nikkiVue.user;
   let isLocalModified = false;
   for (key of Object.keys(firebaseData)) {
@@ -1042,39 +1058,48 @@ function initUserData(firebaseData) {
       break;
     }
   }
+
+  let closetRef = firebase.database().ref('users/' + nikkiVue.account.uid + '/closet');
   if (isFirebaseModified) {
-    firebase.database().ref('users/' + nikkiVue.account.uid + '/closet').set(localData);
+    closetRef.set(localData);
   }
 
-  let userRef = firebase.database().ref('users/' + nikkiVue.account.uid);
-  userRef.child('closet').on('value', function(snapshot) {
+  closetRef.on('value', function(snapshot) {
     nikkiVue.user = snapshot.val();
   });
 }
 
-function mergeUserData(firebaseData) {
-  let localData = nikkiVue.user;
+function initUserRecord(firebaseData) {
+  if (firebaseData == null) {
+    firebaseData = {};
+  }
+  let localData = nikkiVue.record;
   let isLocalModified = false;
   for (key of Object.keys(firebaseData)) {
-    if (firebaseData[key] && !localData[key]) {
-      localData[key] = true;
+    if (firebaseData[key].actual !== 0 && !isJsonEqual(firebaseData[key], localData[key])) {
+      localData[key] = firebaseData[key];
       isLocalModified = true;
     }
   }
   if (isLocalModified) {
-    nikkiVue.user = localData;
+    nikkiVue.record = localData;
   }
 
   let isFirebaseModified = false;
   for (key of Object.keys(localData)) {
-    if (localData[key] && !firebaseData[key]) {
+    if (!isJsonEqual(localData[key], firebaseData[key])) {
       isFirebaseModified = true;
       break;
     }
   }
+  let recordRef = firebase.database().ref('users/' + nikkiVue.account.uid + '/record');
   if (isFirebaseModified) {
-    firebase.database().ref('users/' + nikkiVue.account.uid + '/closet').set(localData);
+    recordRef.set(localData);
   }
+
+  recordRef.on('value', function(snapshot) {
+    nikkiVue.record = snapshot.val();
+  });
 }
 
 firebase.auth().onAuthStateChanged(function(user) {
@@ -1087,6 +1112,9 @@ firebase.auth().onAuthStateChanged(function(user) {
 
   userRef.child('closet').once('value', function(snapshot) {
     initUserData(snapshot.val());
+  });
+  userRef.child('record').once('value', function(snapshot) {
+    initUserRecord(snapshot.val());
   });
 });
 
