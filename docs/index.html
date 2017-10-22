@@ -26,6 +26,9 @@
   .number {
     text-align: right;
   }
+  .selected {
+    font-weight: bold;
+  }
 
   .attribute {
     width: 2em;
@@ -104,7 +107,8 @@ tbody.scroll-table-body {
 <body>
 
   <div id="nikki">
-    <nikki-menu v-on:selected='menuSelected'></nikki-menu>
+    <nikki-menu :menu='menu' :menus='menus' v-on:selected='menuSelected'></nikki-menu>
+
     <div style="margin:1em;">
       <div v-show='menu==="search"'>
         <div class='pure-g'>
@@ -420,26 +424,17 @@ Vue.component('editable-label', {
 
 <script type="text/x-template" id="nikki-menu-template">
 <div class="pure-menu pure-menu-horizontal">
-  <ul class="pure-menu-list">
-    <li class="pure-menu-item"><a href="#search" class="pure-menu-link" v-on:click="clicked('search')">コーデ検索</a></li>
-    <li class="pure-menu-item"><a href="#closet" class="pure-menu-link" v-on:click="clicked('closet')">クローゼット</a></li>
-    <li class="pure-menu-item"><a href="#memo" class="pure-menu-link" v-on:click="clicked('memo')">メモ</a></li>
-    <li class="pure-menu-item"><a href="#list" class="pure-menu-link" v-on:click="clicked('list')">衣装リスト</a></li>
-    <li class="pure-menu-item"><a href="#import" class="pure-menu-link" v-on:click="clicked('import')">インポート</a></li>
-    <li class="pure-menu-item"><a href="#export" class="pure-menu-link" v-on:click="clicked('export')">エクスポート</a></li>
-    <li class="pure-menu-item"><a href="#account" class="pure-menu-link" v-on:click="clicked('account')">アカウント</a></li>
-  </ul>
+  <ul class="pure-menu-list" v-for='item in menus'>
+    <li class="pure-menu-item" :class="{selected: menu==item.menu}">
+      <a :href="'#' + item.menu" class="pure-menu-link" v-on:click="clicked(item.menu)">{{item.title}}</a></li>
+    </ul>
 </div>
 </script>
 
 <script>
 Vue.component('nikki-menu', {
   template: '#nikki-menu-template',
-  data: function () {
-    return {
-      selected: "コーデ検索",
-    };
-  },
+  props: ['menu', 'menus'],
   methods: {
     clicked: function(value) {
       this.$emit('selected', value);
@@ -1048,6 +1043,17 @@ let nikkiVue = new Vue({
   computed: {
     closet: function () { return getCloset(this.list, this.user); },
     exportData: function () { return getExport(this.list, this.user); },
+    menus: function () {
+      return [
+        { menu: 'search',  title: 'コーデ検索' },
+        { menu: 'closet',  title: 'クローゼット' },
+        { menu: 'memo',    title: 'メモ' },
+        { menu: 'list',    title: '衣装リスト' },
+        { menu: 'import',  title: 'インポート' },
+        { menu: 'export',  title: 'エクスポート' },
+        { menu: 'account', title: 'アカウント ' + (this.account ? '(サインイン中)' : '(サインアウト中)') },
+      ];
+    },
   },
   methods: {
     menuSelected: function(value) {
