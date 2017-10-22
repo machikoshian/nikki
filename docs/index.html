@@ -17,6 +17,9 @@
   tr.possession {
     background-color: #C8E6C9;
   }
+  tr.updated {
+    background-color: #FFF9C4;
+  }
   tr.void {
     color: #E0E0E0;
   }
@@ -545,9 +548,10 @@ Vue.component('nikki-stage-info', {
 <script type="text/x-template" id="nikki-search-result-template">
   <div class="pure-g">
     <div class="pure-u-1" style="height: 5vh">
-      合計: {{ totalScore }}
+      理論値: {{ totalScore }} 　　
       実測値: <editable-label :value="record[stage] ? record[stage].actual : '0'" 
             v-on:input="value => { recordInput(stage, value); }" style="width: 5em"></editable-label>
+      <button class="pure-button pure-button-primary" v-on:click="save">保存</button>
     </div>
 
     <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
@@ -563,7 +567,7 @@ Vue.component('nikki-stage-info', {
           </thead>
           <tbody class="scroll-table-body" style="height: 72vh">
             <tr v-for="items in result" v-on:click="subcategoryClicked( items.subcategory )"
-                :class="{ void: !items.use }">
+                :class="{ void: !items.use, updated: updated(items.id) }">
               <td　style="width:6em;">{{ items.subcategory }}</td>
               <td　style="width:2em;">{{ items.rarity }}</td>
               <td>{{ items.name }}</td>
@@ -703,7 +707,23 @@ Vue.component('nikki-search-result', {
       this.$emit('changed', id, !this.user[id]);
     },
     recordInput: function(key, value) {
-      this.$emit('record-input', key, {actual: value});
+      let data = {
+        expected: this.totalScore,
+        actual: value,
+        coordinates: this.result,
+      };
+      this.$emit('record-input', key, data);
+    },
+    save: function() {
+      if (this.stage === '') {
+        return;
+      }
+
+      let data = {
+        expected: this.totalScore,
+        coordinates: this.result,
+      };
+      this.$emit('record-input', this.stage, data);
     },
     score: function(id) {
       if (id === 0) {
@@ -711,6 +731,23 @@ Vue.component('nikki-search-result', {
       }
       return Math.floor(this.scores[id]);
     },
+    updated: function(id) {
+      if (id === 0) {
+        return false;
+      }
+
+      let record = this.record[this.stage];
+      if (record == undefined || record.coordinates == undefined) {
+        return true;
+      }
+
+      for (let key of Object.keys(record.coordinates)) {
+        if (record.coordinates[key].id === id) {
+          return false;
+        }
+      }
+      return true;
+    }
   },
 });
 </script>
@@ -720,14 +757,14 @@ Vue.component('nikki-search-result', {
     <thead>
       <tr>
         <th>ステージ</th>
-<!--        <th>理論値</th> -->
+        <th>理論値</th>
         <th>実測値</th>
       </tr>
     </thead>
     <tbody>
       <tr v-for="key of Object.keys(record)">
         <td>{{ key }}</td>
-<!--        <td>{{ record[key].expected }}</td> -->
+        <td>{{ record[key].expected }}</td>
         <td style="width:5em"><editable-label :value="record[key].actual"
             v-on:input="value => { input(key, value); }"></editable-label></td>
       </tr>
@@ -961,6 +998,7 @@ function createUserRecord() {
   return {
     expected: 0,
     actual: 0,
+    coordinates: {},
   };
 }
 
