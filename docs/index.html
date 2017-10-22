@@ -106,7 +106,8 @@ tbody.scroll-table-body {
       <div v-show='menu==="search"'>
         <nikki-stage-select :stages='stages' v-on:selected='selected'></nikki-stage-select>
         <nikki-stage-info :stage='stage' :stages='stages'></nikki-stage-info>
-        <nikki-search-result :data='data' :user='user' :scores='scores' v-on:changed='changed'></nikki-search-result>
+        <nikki-search-result :data='data' :user='user' :scores='scores' :stage='stage' :record='record'
+         v-on:changed='changed' v-on:record-input='recordInput'></nikki-search-result>
       </div>
 
       <div v-show='menu==="list"'>
@@ -114,7 +115,7 @@ tbody.scroll-table-body {
       </div>
 
       <div v-if='menu==="memo"'>
-        <nikki-memo :record='record' v-on:input='recordInput'></nikki-closet>
+        <nikki-memo :record='record' v-on:record-input='recordInput'></nikki-closet>
       </div>
 
       <div v-if='menu==="closet"'>
@@ -379,7 +380,7 @@ function getExport(data, user) {
 </script>
 
 <script type="text/x-template" id="editable-label-template">
-<div style="width:inherit">
+<div style="display:inline-block; width:inherit">
   <div style="width:100%; margin:0; padding:0; min-height:1rem" v-if="!edit" v-on:click="edit = true">{{value}}</div>
   <input style="width:100%; margin:0; padding:0; height:1rem" v-if="edit" type="text" ref="field"
          :value="value" v-on:blur="changed" v-focus>
@@ -545,6 +546,8 @@ Vue.component('nikki-stage-info', {
   <div class="pure-g">
     <div class="pure-u-1" style="height: 5vh">
       合計: {{ totalScore }}
+      実測値: <editable-label :value="record[stage] ? record[stage].actual : '0'" 
+            v-on:input="value => { recordInput(stage, value); }" style="width: 5em"></editable-label>
     </div>
 
     <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
@@ -604,7 +607,7 @@ Vue.component('nikki-stage-info', {
 <script>
 Vue.component('nikki-search-result', {
   template: '#nikki-search-result-template',
-  props: [ 'data', 'user', 'scores' ],
+  props: [ 'data', 'user', 'scores', 'record', 'stage' ],
   data: function() {
     return {
       subcategories: subCategories,
@@ -699,6 +702,9 @@ Vue.component('nikki-search-result', {
     checked: function(id) {
       this.$emit('changed', id, !this.user[id]);
     },
+    recordInput: function(key, value) {
+      this.$emit('record-input', key, {actual: value});
+    },
     score: function(id) {
       if (id === 0) {
         return 0;
@@ -735,7 +741,7 @@ Vue.component('nikki-memo', {
   props: ['record'],
   methods: {
     input: function (key, value) {
-      this.$emit('input', key, value);
+      this.$emit('record-input', key, {actual: value});
     },
   },
 });
@@ -1027,10 +1033,12 @@ let nikkiVue = new Vue({
       link.click();
     },
     recordInput: function(key, value) {
-      this.record[key].actual = value;
+      for (valueKey of Object.keys(value)) {
+        this.record[key][valueKey] = value[valueKey];
+      }
       localStorage.setItem("userRecord", JSON.stringify(this.record));
       if (this.account) {
-        firebase.database().ref('users/' + this.account.uid + '/record/' + key + '/actual').set(value);
+        firebase.database().ref('users/' + this.account.uid + '/record/' + key).set(this.record[key]);
       }
     },
     signin: function(isSignin) {
