@@ -107,10 +107,14 @@ tbody.scroll-table-body {
     <nikki-menu v-on:selected='menuSelected'></nikki-menu>
     <div style="margin:1em;">
       <div v-show='menu==="search"'>
-        <nikki-stage-select :stages='stages' v-on:selected='selected'></nikki-stage-select>
-        <nikki-stage-info :stage='stage' :stages='stages'></nikki-stage-info>
+        <div class='pure-g'>
+          <nikki-stage-select :stages='stages' v-on:selected='selected'
+                              class='pure-u-1 pure-u-md-2-5 pure-u-lg-2-5'></nikki-stage-select>
+          <nikki-stage-info :stage='stage' :stages='stages'
+                            class='pure-u-1 pure-u-md-3-5 pure-u-lg-3-5'></nikki-stage-info>
+        </div>
         <nikki-search-result :data='data' :user='user' :scores='scores' :stage='stage' :record='record'
-         v-on:changed='changed' v-on:record-input='recordInput'></nikki-search-result>
+                             v-on:changed='changed' v-on:record-input='recordInput'></nikki-search-result>
       </div>
 
       <div v-show='menu==="list"'>
@@ -488,38 +492,41 @@ Vue.component('nikki-stage-select', {
 </script>
 
 <script type="text/x-template" id="nikki-stage-info-template">
-  <table class="pure-table pure-table-horizontal">
-    <thead>
-      <tr>
-        <th><div class="attribute"><div class="gorgeous">華麗</div></div></th>
-        <th><div class="attribute"><div class="simple">シンプル</div></div></th>
-        <th><div class="attribute"><div class="elegant">エレガント</div></div></th>
-        <th><div class="attribute"><div class="active">アクティブ</div></div></th>
-        <th><div class="attribute"><div class="adult">大人</div></div></th>
-        <th><div class="attribute"><div class="cute">キュート</div></div></th>
-        <th><div class="attribute"><div class="sexy">セクシー</div></div></th>
-        <th><div class="attribute"><div class="pure">ピュア</div></div></th>
-        <th><div class="attribute"><div class="warm">ウォーム</div></div></th>
-        <th><div class="attribute"><div class="cool">クール</div></div></th>
-        <th>タグ</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>{{ attributes[0] }}</td>
-        <td>{{ attributes[1] }}</td>
-        <td>{{ attributes[2] }}</td>
-        <td>{{ attributes[3] }}</td>
-        <td>{{ attributes[4] }}</td>
-        <td>{{ attributes[5] }}</td>
-        <td>{{ attributes[6] }}</td>
-        <td>{{ attributes[7] }}</td>
-        <td>{{ attributes[8] }}</td>
-        <td>{{ attributes[9] }}</td>
-        <td>{{ tags[0] }} {{ tags[1] }}</td>
-      </tr>
-    </tbody>
-  </table>
+  <div style="font-size:small; text-align:center">
+    <table class="pure-table pure-table-horizontal">
+      <thead>
+        <tr>
+          <th><div class="attribute"><div class="gorgeous">華麗</div></div></th>
+          <th><div class="attribute"><div class="simple">シンプル</div></div></th>
+          <th><div class="attribute"><div class="elegant">エレガント</div></div></th>
+          <th><div class="attribute"><div class="active">アクティブ</div></div></th>
+          <th><div class="attribute"><div class="adult">大人</div></div></th>
+          <th><div class="attribute"><div class="cute">キュート</div></div></th>
+          <th><div class="attribute"><div class="sexy">セクシー</div></div></th>
+          <th><div class="attribute"><div class="pure">ピュア</div></div></th>
+          <th><div class="attribute"><div class="warm">ウォーム</div></div></th>
+          <th><div class="attribute"><div class="cool">クール</div></div></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ attributes[0] }}</td>
+          <td>{{ attributes[1] }}</td>
+          <td>{{ attributes[2] }}</td>
+          <td>{{ attributes[3] }}</td>
+          <td>{{ attributes[4] }}</td>
+          <td>{{ attributes[5] }}</td>
+          <td>{{ attributes[6] }}</td>
+          <td>{{ attributes[7] }}</td>
+          <td>{{ attributes[8] }}</td>
+          <td>{{ attributes[9] }}</td>
+        </tr>
+        <tr v-if='tags[0] || tags[1]'>
+          <td colSpan=5>{{ tags[0] }}</td><td colSpan=5>{{ tags[1] }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </script>
 
 <script>
@@ -841,7 +848,7 @@ Vue.component('nikki-import', {
 
 <script type="text/x-template" id="nikki-closet-template">
   <div class="pure-g">
-    <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
+    <div class="pure-u-1 pure-u-md-2-5 pure-u-lg-2-5">
       <table class="pure-table pure-table-horizontal">
         <thead>
           <tr><th>カテゴリー</th><th>所有数</th><th>全体数</th><th>所有率</th></tr>
@@ -856,7 +863,7 @@ Vue.component('nikki-import', {
         </tbody>
       </table>
     </div>
-    <div class="pure-u-1 pure-u-md-1-2 pure-u-lg-1-2">
+    <div class="pure-u-1 pure-u-md-3-5 pure-u-lg-3-5">
       <div class="scroll-table-container">
         <table class="pure-table pure-table-horizontal">
           <thead class="scroll-table-header">
