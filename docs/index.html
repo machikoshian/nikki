@@ -125,7 +125,7 @@ tbody.scroll-table-body {
     </div>
 
     <div v-if='menu==="export"'>
-      <nikki-export :data='exportData'></nikki-export>
+      <nikki-export :data='exportData' v-on:download='download'></nikki-export>
     </div>
 
     <div v-if='menu==="account"'>
@@ -744,7 +744,10 @@ Vue.component('nikki-memo', {
 
 <script type="text/x-template" id="nikki-export-template">
   <form class="pure-form">
-    <textarea class="pure-input-1-2" v-model="data" style="width: 50wh; height: 60vh;"></textarea>
+    <fieldset>
+      <textarea class="pure-input-1-2" v-model="data" style="width: 50wh; height: 60vh;"></textarea>
+    </fieldset>
+    <button class="pure-button pure-button-primary" v-on:click="clicked">ダウンロード</button>
   </form>
 </script>
 
@@ -752,6 +755,11 @@ Vue.component('nikki-memo', {
 Vue.component('nikki-export', {
   template: '#nikki-export-template',
   props: [ 'data' ],
+  methods: {
+    clicked: function() {
+      this.$emit('download', this.data);
+    },
+  },
 });
 </script>
 
@@ -1008,6 +1016,16 @@ let nikkiVue = new Vue({
       if (this.account) {
         firebase.database().ref('users/' + this.account.uid + '/closet').set(userPossession);
       }
+    },
+    download: function() {
+      let total = this.closet[this.closet.length - 1];
+      let filename = 'nikki-data-' + total.possession + '-' + total.total + '.tsv';
+      let blob = new Blob([this.exportData], { 'type': 'text/plain' });
+
+      let link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
     },
     recordInput: function(key, value) {
       this.record[key].actual = value;
