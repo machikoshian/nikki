@@ -548,7 +548,7 @@ Vue.component('nikki-stage-info', {
 <script type="text/x-template" id="nikki-search-result-template">
   <div class="pure-g">
     <div class="pure-u-1" style="height: 5vh">
-      理論値: {{ totalScore }} 　　
+      理論値: {{ prevScore }} → {{ totalScore }} 　　
       実測値: <editable-label :value="record[stage] ? record[stage].actual : '0'" 
             v-on:input="value => { recordInput(stage, value); }" style="width: 5em"></editable-label>
       <button class="pure-button pure-button-primary" v-on:click="save">保存</button>
@@ -695,6 +695,13 @@ Vue.component('nikki-search-result', {
       }
       return result;
     },
+    prevScore: function () {
+      let record = this.record[this.stage];
+      if (record == undefined || record.expected == undefined) {
+        return 0;
+      }
+      return record.expected;
+    },
   },
   methods: {
     subcategoryClicked: function(subcategory) {
@@ -738,7 +745,7 @@ Vue.component('nikki-search-result', {
 
       let record = this.record[this.stage];
       if (record == undefined || record.coordinates == undefined) {
-        return true;
+        return false;
       }
 
       for (let key of Object.keys(record.coordinates)) {
