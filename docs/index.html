@@ -1091,8 +1091,12 @@ let nikkiVue = new Vue({
       link.click();
     },
     recordInput: function(key, value) {
+      if (this.record[key] == undefined) {
+        this.$set(this.record, key, {});
+      }
+
       for (valueKey of Object.keys(value)) {
-        this.record[key][valueKey] = value[valueKey];
+        this.$set(this.record[key], valueKey, value[valueKey]);
       }
       localStorage.setItem("userRecord", JSON.stringify(this.record));
       if (this.account) {
