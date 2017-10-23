@@ -165,9 +165,8 @@ class FirebaseManager {
     this.onRefs = [];
     this.user = null;
 
-    let that = this;
-    firebase.auth().onAuthStateChanged(function(user) {
-      that.user = user;
+    firebase.auth().onAuthStateChanged((user) => {
+      this.user = user;
     });
   }
 
@@ -178,7 +177,7 @@ class FirebaseManager {
 
   signout(callback) {
     // let that = this;
-    this.firebase.auth().signOut().then(() => function () {
+    this.firebase.auth().signOut().then(() => {
       for (let ref of this.onRefs) {
         ref.off();
       }
@@ -192,9 +191,8 @@ class FirebaseManager {
   }
 
   addOnAuthStateChanged(callback) {
-    let that = this;
-    this.firebase.auth().onAuthStateChanged(function(user) {
-      callback(user, that);
+    this.firebase.auth().onAuthStateChanged((user) => {
+      callback(user, this);
     });
   }
 }
@@ -1146,20 +1144,16 @@ let nikkiVue = new Vue({
       }
     },
     signin: function(isSignin) {
-      signin(isSignin);
+      if (isSignin) {
+        firebaseManager.signin();
+      } else {
+        firebaseManager.signout(function () {
+          this.account = null;
+        });
+      }
     }
   },
 });
-
-function signin(isSignin) {
-  if (isSignin) {
-    firebaseManager.signin();
-  } else {
-    firebaseManager.signout(function () {
-      nikkiVue.account = null;
-    });
-  }
-}
 
 function initUserData(firebaseData) {
   if (firebaseData == null) {
