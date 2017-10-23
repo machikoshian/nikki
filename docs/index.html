@@ -148,16 +148,58 @@ tbody.scroll-table-body {
   </div>
 
 <script>
-  // Initialize Firebase
-  var config = {
-    apiKey: "AIzaSyDoP60nZNvdMXp19psO3GFhDEU4zYAcfMs",
-    authDomain: "nikki-2929.firebaseapp.com",
-    databaseURL: "https://nikki-2929.firebaseio.com",
-    projectId: "nikki-2929",
-    storageBucket: "nikki-2929.appspot.com",
-    messagingSenderId: "607156444646"
-  };
-  firebase.initializeApp(config);
+// Initialize Firebase
+let config = {
+  apiKey: "AIzaSyDoP60nZNvdMXp19psO3GFhDEU4zYAcfMs",
+  authDomain: "nikki-2929.firebaseapp.com",
+  databaseURL: "https://nikki-2929.firebaseio.com",
+  projectId: "nikki-2929",
+  storageBucket: "nikki-2929.appspot.com",
+  messagingSenderId: "607156444646"
+};
+firebase.initializeApp(config);
+
+class FirebaseManager {
+  constructor(firebase) {
+    this.firebase = firebase;
+    this.onRefs = [];
+    this.user = null;
+
+    let that = this;
+    firebase.auth().onAuthStateChanged(function(user) {
+      that.user = user;
+    });
+  }
+
+  signin() {
+    let provider = new firebase.auth.GoogleAuthProvider();
+    this.firebase.auth().signInWithRedirect(provider);
+  }
+
+  signout(callback) {
+    // let that = this;
+    this.firebase.auth().signOut().then(() => function () {
+      for (let ref of this.onRefs) {
+        ref.off();
+      }
+      this.onRefs = [];
+      callback();
+    });
+  }
+
+  addOnRef(ref) {
+    this.onRefs.push(ref);
+  }
+
+  addOnAuthStateChanged(callback) {
+    let that = this;
+    this.firebase.auth().onAuthStateChanged(function(user) {
+      callback(user, that);
+    });
+  }
+}
+
+let firebaseManager = new FirebaseManager(firebase);
 </script>
 
 <script>
@@ -1111,12 +1153,9 @@ let nikkiVue = new Vue({
 
 function signin(isSignin) {
   if (isSignin) {
-    let provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithRedirect(provider);
+    firebaseManager.signin();
   } else {
-    firebase.auth().signOut().then(function () {
-      firebase.database().ref('users/' + nikkiVue.account.uid + '/closet').off();
-      firebase.database().ref('users/' + nikkiVue.account.uid + '/record').off();
+    firebaseManager.signout(function () {
       nikkiVue.account = null;
     });
   }
@@ -1151,6 +1190,7 @@ function initUserData(firebaseData) {
     closetRef.set(localData);
   }
 
+  firebaseManager.addOnRef(closetRef);
   closetRef.on('value', function(snapshot) {
     nikkiVue.user = snapshot.val();
   });
@@ -1184,16 +1224,19 @@ function initUserRecord(firebaseData) {
     recordRef.set(localData);
   }
 
+  firebaseManager.addOnRef(recordRef);
   recordRef.on('value', function(snapshot) {
     nikkiVue.record = snapshot.val();
   });
 }
 
-firebase.auth().onAuthStateChanged(function(user) {
-  console.log(user);
+firebaseManager.addOnAuthStateChanged(function(user, firebaseManager) {
   nikkiVue.account = user;
 
-  let userRef = firebase.database().ref('users/' + user.uid);
+  if (user == null) {
+    return;
+  }
+  let userRef = firebaseManager.firebase.database().ref('users/' + user.uid);
   userRef.child('email').set(user.email);
   userRef.child('name').set(user.displayName);
 
