@@ -107,7 +107,7 @@ tbody.scroll-table-body {
 <body>
 
   <div id="nikki">
-    <nikki-menu :menu='menu' :menus='menus' v-on:selected='menuSelected'></nikki-menu>
+    <vue-menu :menu='menu' :menus='menus' v-on:selected='menuSelected'></vue-menu>
 
     <div style="margin:1em;">
       <div v-show='menu==="search"'>
@@ -430,6 +430,8 @@ function getExport(data, user) {
 
 </script>
 
+<!-- Editable label -->
+
 <script type="text/x-template" id="editable-label-template">
 <div style="display:inline-block; width:inherit">
   <div style="width:100%; margin:0; padding:0; min-height:1rem" v-if="!edit" v-on:click="edit = true">{{value}}</div>
@@ -461,6 +463,8 @@ Vue.component('editable-label', {
   },
 });
 </script>
+
+<!-- vue-menu -->
 
 <style>
 #menu-checkbox {
@@ -531,7 +535,7 @@ Vue.component('editable-label', {
 }
 </style>
 
-<script type="text/x-template" id="nikki-menu-template">
+<script type="text/x-template" id="vue-menu-template">
 <div class="pure-menu pure-menu-horizontal">
   <input id="menu-checkbox" type="checkbox" value="off" v-model="checked">
   <label class="menu-icon" for="menu-checkbox">≡</label>
@@ -546,8 +550,8 @@ Vue.component('editable-label', {
 </script>
 
 <script>
-Vue.component('nikki-menu', {
-  template: '#nikki-menu-template',
+Vue.component('vue-menu', {
+  template: '#vue-menu-template',
   props: ['menu', 'menus'],
   data: function () {
     return {
