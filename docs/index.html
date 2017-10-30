@@ -462,12 +462,86 @@ Vue.component('editable-label', {
 });
 </script>
 
+<style>
+#menu-checkbox {
+    display: none;
+}
+
+.menu-icon {
+    cursor: pointer;
+    font-size: 50px;
+    width: 50px;
+    height: 50px;
+    line-height: 50px;
+    margin-left: 15px;
+    text-align: center;
+}
+
+.menu-list {
+    box-sizing: border-box;
+    background-color: white;
+    padding: 0;
+    position: fixed;
+    width: 300px;
+    height: 100%;
+    left: -300px;
+    top: 0;
+    transition: transform 0.3s ease-in-out 0s;
+    z-index: 11;
+}
+
+#menu-checkbox:checked ~ .menu-list {
+    transform: translateX(300px);
+}
+
+.menu-background {
+    display: block;
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    transition: all 0.5s ease-in-out 0s;
+    z-index: -1;
+}
+
+#menu-checkbox:checked ~ .menu-background {
+    background-color: black;
+    opacity: 0.3;
+    z-index: 10;
+}
+
+.menu-item {
+    padding: 0.5em;
+}
+
+@media (min-width: 48em) {
+    .menu-icon { display: none; }
+    .menu-background { display: none; }
+    .menu-list {
+        position: relative;
+        width: 100%;
+        height: auto;
+        left: 0;
+        white-space: nowrap;
+    }
+    .menu-item {
+        display: inline-block;
+    }
+}
+</style>
+
 <script type="text/x-template" id="nikki-menu-template">
 <div class="pure-menu pure-menu-horizontal">
-  <ul class="pure-menu-list" v-for='item in menus'>
-    <li class="pure-menu-item" :class="{selected: menu==item.menu}">
-      <a :href="'#' + item.menu" class="pure-menu-link" v-on:click="clicked(item.menu)">{{item.title}}</a></li>
-    </ul>
+  <input id="menu-checkbox" type="checkbox" value="off" v-model="checked">
+  <label class="menu-icon" for="menu-checkbox">≡</label>
+  <label class="menu-background" for="menu-checkbox"></label>
+
+  <div class="menu-list">
+    <div class="menu-item" :class="{selected: menu==item.menu}" v-for="item in menus">
+      <a :href="'#' + item.menu" class="pure-menu-link" v-on:click="clicked(item.menu)">{{item.title}}</a>
+    </div>
+  </div>
 </div>
 </script>
 
@@ -475,17 +549,17 @@ Vue.component('editable-label', {
 Vue.component('nikki-menu', {
   template: '#nikki-menu-template',
   props: ['menu', 'menus'],
+  data: function () {
+    return {
+      checked: false,
+    };
+  },
   methods: {
     clicked: function(value) {
+      this.checked = false;
       this.$emit('selected', value);
     },
   },
-
-  watch: {
-    selected: function(value, oldValue) {
-      this.$emit('selected', value);
-    },
-  }
 });
 </script>
 
